@@ -6,7 +6,7 @@ function getKV(k: string) {
   return row?.v ?? null;
 }
 function setKV(k: string, v: string) {
-  db.execSync(`INSERT OR REPLACE INTO kv (k,v) VALUES (?,?)`, [k, v]);
+  db.runSync(`INSERT OR REPLACE INTO kv (k,v) VALUES (?,?)`, [k, v]);
 }
 
 export async function pushOutbox() {
@@ -36,7 +36,7 @@ export async function pullChanges() {
     for (const r of (data.checkins as any[] ?? [])) {
       const deletedAtMs = r.deletedAt ? Date.parse(r.deletedAt) : null;
       const updatedAtMs = Date.parse(r.updatedAt);
-      db.execSync(
+      db.runSync(
         `INSERT INTO checkins (id,date,mood,note,updated_at,deleted_at)
          VALUES (?,?,?,?,?,?)
          ON CONFLICT(id) DO UPDATE SET

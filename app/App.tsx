@@ -1,3 +1,4 @@
+import 'react-native-get-random-values'; // vor dem uuid-Import laden
 import React, { useEffect, useState } from 'react';
 import { SafeAreaView, View, Text, Button, TextInput, FlatList } from 'react-native';
 import { migrate } from './src/data/db';

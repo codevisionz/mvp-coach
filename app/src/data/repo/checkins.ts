@@ -6,7 +6,7 @@ export type Mood = 1|2|3|4|5;
 export function addLocalCheckIn(input: { date: string; mood: Mood; note?: string }) {
   const id = uuid(); const now = Date.now();
   db.withTransactionSync(() => {
-    db.execSync(
+    db.runSync(
       `INSERT INTO checkins (id,date,mood,note,updated_at) VALUES (?,?,?,?,?)`,
       [id, input.date, input.mood, input.note ?? null, now]
     );
@@ -14,7 +14,7 @@ export function addLocalCheckIn(input: { date: string; mood: Mood; note?: string
       id, date: input.date, mood: input.mood, note: input.note ?? null,
       updatedAt: new Date(now).toISOString()
     });
-    db.execSync(
+    db.runSync(
       `INSERT INTO outbox (id,table_name,op,payload,created_at) VALUES (?,?,?,?,?)`,
       [id, 'checkins', 'upsert', payload, now]
     );
