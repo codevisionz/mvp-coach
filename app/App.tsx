@@ -5,6 +5,8 @@ import { migrate } from './src/data/db';
 import { addLocalCheckIn, listLocalCheckIns, Mood } from './src/data/repo/checkins';
 import { runSync } from './src/data/sync';
 import { signupOrLogin } from './src/utils/auth';
+import JournalScreen from './src/screens/JournalScreen';
+import { useAutoSync } from './src/hooks/useAutoSync';
 
 export default function App() {
   const [email, setEmail] = useState('demo@example.com');
@@ -12,8 +14,10 @@ export default function App() {
   const [note, setNote] = useState('');
   const [mood, setMood] = useState<Mood>(3);
   const [items, setItems] = useState<any[]>([]);
-
+  
   useEffect(() => { migrate(); refresh(); }, []);
+  useAutoSync(60_000); // alle 60s + onFocus
+
 
   function refresh() { setItems(listLocalCheckIns()); }
 
@@ -33,7 +37,9 @@ export default function App() {
     refresh();
   }
 
-  return (
+  return <JournalScreen />;
+
+  /*return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={{ padding: 16, gap: 8 }}>
         <Text style={{ fontSize: 18, fontWeight: '600' }}>MVP Coach (Offline-First)</Text>
@@ -71,5 +77,5 @@ export default function App() {
         />
       </View>
     </SafeAreaView>
-  );
+  );*/
 }
