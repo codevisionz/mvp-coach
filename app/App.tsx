@@ -5,8 +5,8 @@ import { migrate } from './src/data/db';
 import { addLocalCheckIn, listLocalCheckIns, Mood } from './src/data/repo/checkins';
 import { runSync } from './src/data/sync';
 import { signupOrLogin } from './src/utils/auth';
-import JournalScreen from './src/screens/JournalScreen';
 import { useAutoSync } from './src/hooks/useAutoSync';
+import RootNavigator from './src/navigation/RootNavigator';
 
 export default function App() {
   const [email, setEmail] = useState('demo@example.com');
@@ -17,7 +17,6 @@ export default function App() {
   
   useEffect(() => { migrate(); refresh(); }, []);
   useAutoSync(60_000); // alle 60s + onFocus
-
 
   function refresh() { setItems(listLocalCheckIns()); }
 
@@ -37,7 +36,7 @@ export default function App() {
     refresh();
   }
 
-  return <JournalScreen />;
+  return <RootNavigator />;
 
   /*return (
     <SafeAreaView style={{ flex: 1 }}>
