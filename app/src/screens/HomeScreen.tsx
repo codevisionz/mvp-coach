@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Button, TextInput, FlatList } from 'react-native';
 import { addLocalCheckIn, listLocalCheckIns, Mood } from '../data/repo/checkins';
 import { runSync } from '../data/sync';
-import { signupOrLogin } from '../utils/auth';
 import { useAutoSync } from '../hooks/useAutoSync';
 
 export default function HomeScreen() {
@@ -17,10 +16,6 @@ export default function HomeScreen() {
     useEffect(() => { }, []);
 
     function refresh() { setItems(listLocalCheckIns()); }
-
-    async function onAuth() {
-        await signupOrLogin(email, pwd);
-    }
 
     async function onSync() {
         await runSync();
@@ -66,12 +61,6 @@ export default function HomeScreen() {
         <View style={{ flex: 1 }}>
             <View style={{ padding: 16, gap: 8 }}>
                 <Text style={{ fontSize: 18, fontWeight: '600' }}>MVP Coach (Offline-First)</Text>
-
-                <TextInput placeholder="E-Mail" value={email} onChangeText={setEmail}
-                    autoCapitalize="none" style={{ borderWidth: 1, padding: 8, borderRadius: 8 }} />
-                <TextInput placeholder="Passwort" value={pwd} onChangeText={setPwd} secureTextEntry
-                    style={{ borderWidth: 1, padding: 8, borderRadius: 8 }} />
-                <Button title="Login / Signup" onPress={onAuth} />
 
                 <View style={{ height: 12 }} />
                 <TextInput placeholder="Notiz" value={note} onChangeText={setNote}

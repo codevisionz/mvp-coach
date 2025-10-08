@@ -4,7 +4,6 @@ import { SafeAreaView, View, Text, Button, TextInput, FlatList } from 'react-nat
 import { migrate } from './src/data/db';
 import { addLocalCheckIn, listLocalCheckIns, Mood } from './src/data/repo/checkins';
 import { runSync } from './src/data/sync';
-import { signupOrLogin } from './src/utils/auth';
 import { useAutoSync } from './src/hooks/useAutoSync';
 import RootNavigator from './src/navigation/RootNavigator';
 
@@ -19,22 +18,6 @@ export default function App() {
   useAutoSync(60_000); // alle 60s + onFocus
 
   function refresh() { setItems(listLocalCheckIns()); }
-
-  async function onAuth() {
-    await signupOrLogin(email, pwd);
-  }
-
-  function onAdd() {
-    const today = new Date().toISOString().slice(0,10);
-    addLocalCheckIn({ date: today, mood, note });
-    setNote('');
-    refresh();
-  }
-
-  async function onSync() {
-    await runSync();
-    refresh();
-  }
 
   return <RootNavigator />;
 

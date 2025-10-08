@@ -19,7 +19,7 @@ export default function Tabs() {
             Journal: focused ? 'book' : 'book-outline',
             Settings: focused ? 'settings' : 'settings-outline',
           };
-          // @ts-expect-error route.name passt zu map keys
+          
           const icon = map[route.name] ?? 'ellipse';
           return <Ionicons name={icon as any} size={size} color={color} />;
         },

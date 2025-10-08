@@ -2,24 +2,41 @@ import React from 'react';
 import { NavigationContainer, DefaultTheme, Theme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Tabs from './Tabs';
-import type { RootStackParamList } from './types';
+import type { AuthStackParamList, RootStackParamList } from './types';
+import LoginScreen from '../screens/LoginScreen';
+import SignupScreen from '../screens/SignupScreen';
+import { useAuthStore } from '../state/auth';
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const RootStack = createNativeStackNavigator<RootStackParamList>();
+const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 
 const theme: Theme = {
   ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    background: '#ffffff', // optional
-  },
+  colors: { ...DefaultTheme.colors, background: '#ffffff' }
 };
 
+function AuthNavigator() {
+  return (
+    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="Signup" component={SignupScreen} />
+    </AuthStack.Navigator>
+  );
+}
+
 export default function RootNavigator() {
+  // rehydrate persistierten Token
+  const token = useAuthStore(s => s.token);
+
   return (
     <NavigationContainer theme={theme}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Tabs" component={Tabs} />
-      </Stack.Navigator>
+      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        {token ? (
+          <RootStack.Screen name="Tabs" component={Tabs} />
+        ) : (
+          <RootStack.Screen name="Auth" component={AuthNavigator} />
+        )}
+      </RootStack.Navigator>
     </NavigationContainer>
   );
 }
