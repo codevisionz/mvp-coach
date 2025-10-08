@@ -8,10 +8,16 @@ export type RootStackParamList = {
 export type TabsParamList = {
   Home: undefined;
   Journal: undefined;
+  Chat: undefined;  
   Settings: undefined;
 };
 
 export type AuthStackParamList = {
   Login: undefined;
   Signup: undefined;
+};
+
+export type ChatStackParamList = {
+  Conversations: undefined;
+  Chat: { conversationId?: string } | undefined;
 };
