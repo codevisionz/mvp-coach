@@ -8,10 +8,6 @@ import { useAutoSync } from './src/hooks/useAutoSync';
 import RootNavigator from './src/navigation/RootNavigator';
 
 export default function App() {
-  const [email, setEmail] = useState('demo@example.com');
-  const [pwd, setPwd] = useState('password123');
-  const [note, setNote] = useState('');
-  const [mood, setMood] = useState<Mood>(3);
   const [items, setItems] = useState<any[]>([]);
   
   useEffect(() => { migrate(); refresh(); }, []);

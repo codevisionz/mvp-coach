@@ -62,7 +62,7 @@ export async function syncRoutes(app: FastifyInstance) {
     }
     for (const d of body.deletes ?? []) {
       if (d.table === 'checkins') tx.push(app.prisma.checkIn.update({ where: { id: d.id }, data: { deletedAt: new Date() } }));
-      if (d.table === 'journals') tx.push(app.prisma.journal.update({ where: { id: d.id }, data: { deletedAt: new Date() } }));
+      if (d.table === 'journals') tx.push(app.prisma.journal.updateMany({ where: { id: d.id }, data: { deletedAt: new Date() } }));
       if (d.table === 'conversations') tx.push(app.prisma.conversation.update({ where: { id: d.id }, data: { deletedAt: new Date() } }));
       if (d.table === 'messages') tx.push(app.prisma.message.update({ where: { id: d.id }, data: { deletedAt: new Date() } }));
     }

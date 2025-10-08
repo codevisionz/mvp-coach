@@ -1,11 +1,13 @@
 import React from 'react';
 import { NavigationContainer, DefaultTheme, Theme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import Tabs from './Tabs';
 import type { AuthStackParamList, RootStackParamList } from './types';
+import { useAuthStore } from '../state/auth';
+import { useAuthHydrated } from '../state/hydration';
+import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
-import { useAuthStore } from '../state/auth';
+import Tabs from './Tabs';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -27,6 +29,9 @@ function AuthNavigator() {
 export default function RootNavigator() {
   // rehydrate persistierten Token
   const token = useAuthStore(s => s.token);
+  const hydrated = useAuthHydrated();
+
+  if (!hydrated) return <SplashScreen />;
 
   return (
     <NavigationContainer theme={theme}>
