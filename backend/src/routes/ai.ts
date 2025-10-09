@@ -5,7 +5,7 @@ import OpenAI from 'openai';
 const BodySchema = z.object({
   prompt: z.string().min(1),
   conversationId: z.string().uuid().optional(),
-  mode: z.enum(['coach','astroCoach']).optional().default('coach'),
+  mode: z.enum(['coach', 'astroCoach']).optional().default('coach'),
   astroHint: z.string().optional() // optionaler Tagesimpuls
 });
 
