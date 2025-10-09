@@ -7,6 +7,8 @@ import { dataRoutes } from './routes/data';
 import { syncRoutes } from './routes/sync';
 import { aiRoutes } from './routes/ai';
 import { chatRoutes } from './routes/chat';
+import { profileRoutes } from './routes/profile';
+import { astroRoutes } from './routes/astro';
 
 const app = Fastify({ logger: true });
 const prisma = new PrismaClient();
@@ -14,7 +16,9 @@ const prisma = new PrismaClient();
 app.register(cors, { origin: true });
 app.register(jwt, { secret: process.env.JWT_SECRET! });
 app.register(aiRoutes, { prefix: '' }); // /ai/coach
-app.register(chatRoutes);
+app.register(chatRoutes, { prefix: '' });
+app.register(profileRoutes, { prefix: '' });
+app.register(astroRoutes, { prefix: '' });
 
 app.decorate('prisma', prisma);
 app.decorate('auth', async (req: any, rep: any) => {
