@@ -1,57 +1,45 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, RefreshControl, Button, TouchableOpacity } from 'react-native';
-import { listConversations } from '../data/chatApi';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ChatStackParamList } from '../navigation/types';
+import { listConversationsLocal } from '../data/repo/chatLocal';
+import { runSync } from '../data/sync';
 
 type Props = NativeStackScreenProps<ChatStackParamList, 'Conversations'>;
 
-type Row = {
-  id: string;
-  mode: string;
-  updatedAt: string;
-  createdAt: string;
-};
-
 export default function ConversationsScreen({ navigation }: Props) {
-  const [items, setItems] = useState<Row[]>([]);
+  const [items, setItems] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [offset, setOffset] = useState(0);
-  const [total, setTotal] = useState<number | null>(null);
+  const [done, setDone] = useState(false);
   const pageSize = 20;
 
-  async function load(reset = false) {
-    if (loadingMore && !reset) return;
-    if (reset) { setOffset(0); }
-    setLoadingMore(true);
-    try {
-      const { items: rows, total } = await listConversations(pageSize, reset ? 0 : offset);
-      setTotal(total);
-      if (reset) setItems(rows as any);
-      else setItems(prev => [...prev, ...(rows as any)]);
-      setOffset(prev => (reset ? rows.length : prev + rows.length));
-    } finally {
-      setLoadingMore(false);
+  function load(reset=false) {
+    const rows = listConversationsLocal(pageSize, reset ? 0 : offset);
+    if (reset) {
+      setItems(rows);
+      setOffset(rows.length);
+      setDone(rows.length < pageSize);
+    } else {
+      setItems(prev => [...prev, ...rows]);
+      setOffset(prev => prev + rows.length);
+      if (rows.length < pageSize) setDone(true);
     }
   }
 
-  useEffect(() => { load(true); }, []);
-
-  function onEndReached() {
-    if (total !== null && offset >= total) return; // nichts mehr
-    load(false);
-  }
+  useEffect(() => { (async () => { await runSync(); load(true); })(); }, []);
 
   async function onRefresh() {
     setRefreshing(true);
-    try { await load(true); }
+    try { await runSync(); load(true); }
     finally { setRefreshing(false); }
   }
 
-  function fmt(dt: string) {
-    try { return new Date(dt).toLocaleString(); } catch { return dt; }
+  function onEndReached() {
+    if (!done) load(false);
   }
+
+  const fmt = (ms: number) => new Date(ms).toLocaleString();
 
   return (
     <View style={{ flex:1, padding: 12 }}>
@@ -69,20 +57,13 @@ export default function ConversationsScreen({ navigation }: Props) {
             style={{ paddingVertical: 12, borderBottomWidth: 1, borderColor: '#eee' }}
           >
             <Text style={{ fontWeight:'600' }}>{item.mode === 'astroCoach' ? 'Astro-Coach' : 'Coach'}</Text>
-            <Text style={{ color:'#666', marginTop: 2 }}>Aktualisiert: {fmt(item.updatedAt)}</Text>
+            <Text style={{ color:'#666', marginTop: 2 }}>Aktualisiert: {fmt(item.updated_at)}</Text>
           </TouchableOpacity>
         )}
         onEndReachedThreshold={0.2}
         onEndReached={onEndReached}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        ListFooterComponent={
-          loadingMore ? <Text style={{ textAlign:'center', padding: 8 }}>Lade…</Text> : <View />
-        }
-        ListEmptyComponent={
-          <View style={{ padding: 16 }}>
-            <Text style={{ color:'#666' }}>Noch keine Unterhaltungen. Starte eine neue über den Button „Neu“.</Text>
-          </View>
-        }
+        ListEmptyComponent={<View style={{ padding: 16 }}><Text style={{ color:'#666' }}>Noch keine Unterhaltungen.</Text></View>}
       />
     </View>
   );

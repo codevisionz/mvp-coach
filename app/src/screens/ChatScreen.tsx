@@ -4,6 +4,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ChatStackParamList } from '../navigation/types';
 import { aiCoach, listConversations, listMessages, Message } from '../data/chatApi';
 import { getProfile, getAstroHint, Profile } from '../data/profileApi';
+import { listMessagesLocal, insertLocalTempUserMessage, replaceTempWithServerMessage } from '../data/repo/chatLocal';
+import { runSync } from '../data/sync';
 
 type Props = NativeStackScreenProps<ChatStackParamList, 'Chat'>;
 
@@ -11,6 +13,7 @@ type UiMsg = { id: string; role: 'user' | 'assistant'; content: string; createdA
 
 export default function ChatScreen({ route, navigation }: Props) {
     const initialConvId = route.params?.conversationId ?? null;
+    const oldestMsRef = useRef<number | null>(null);
 
     const [convId, setConvId] = useState<string | null>(initialConvId);
     const [msgs, setMsgs] = useState<UiMsg[]>([]);
@@ -27,22 +30,19 @@ export default function ChatScreen({ route, navigation }: Props) {
 
     useEffect(() => {
         (async () => {
+            setLoading(true);
             try {
-                setLoading(true);
-                // Profil laden, um ggf. Geburtsdaten zu haben
-                try {
-                    const p = await getProfile();
-                    profileRef.current = p;
-                    setAstroOn(!!p.astroEnabled); // default: wie in Settings
-                } catch { }
-                // Conversation laden wie gehabt
+                // Erst Sync, dann lokal laden
+                await runSync();
                 let id = initialConvId;
                 if (!id) {
-                    const { items } = await listConversations(1, 0);
-                    id = items.length ? items[0].id : null;
+                    // wenn keine convId übergeben wurde, warten wir auf erste Nachricht (Server erzeugt ID)
+                    setConvId(null);
+                    setMsgs([]); oldestMsRef.current = null;
+                    return;
                 }
                 setConvId(id);
-                if (id) await loadInitial(id);
+                await loadInitialLocal(id);
             } finally {
                 setLoading(false);
             }
@@ -70,6 +70,21 @@ export default function ChatScreen({ route, navigation }: Props) {
         }
     }
 
+    async function loadInitialLocal(conversationId: string) {
+        const page = listMessagesLocal(conversationId, 30);
+        setMsgs(page.map(m => ({ id: m.id, role: m.role, content: m.content, createdAt: String(m.created_at) })));
+        oldestMsRef.current = page.length ? page[0].created_at : null;
+    }
+
+    async function loadMoreLocal() {
+        if (!convId || !oldestMsRef.current) return;
+        const older = listMessagesLocal(convId, 30, oldestMsRef.current);
+        if (!older.length) return;
+        oldestMsRef.current = older[0].created_at;
+        setMsgs(prev => [...older.map(m => ({ id: m.id, role: m.role, content: m.content })), ...prev]);
+    }
+
+
     function toUi(m: Message): UiMsg {
         return { id: m.id, role: m.role, content: m.content, createdAt: m.createdAt };
     }
@@ -78,31 +93,33 @@ export default function ChatScreen({ route, navigation }: Props) {
         const prompt = text.trim();
         if (!prompt) return;
         setText('');
+
         const tempId = `local-${Date.now()}`;
+        // optimistic: lokal einfügen
+        insertLocalTempUserMessage(tempId, convId, prompt);
         setMsgs(prev => [...prev, { id: tempId, role: 'user', content: prompt }]);
+
         setSending(true);
-
         try {
-            // 🔹 Astro-Hint optional holen
-            let astroHint: string | undefined = undefined;
-            if (astroOn) {
-                const p = profileRef.current;
-                const r = await getAstroHint({
-                    birthDate: p?.birthDate ?? null,
-                    birthTime: p?.birthTime ?? null,
-                    birthPlace: p?.birthPlace ?? null
-                });
-                astroHint = r.astroHint;
+            const res = await aiCoach(prompt, { conversationId: convId ?? undefined, mode: 'coach' });
+            // Falls neue Conversation
+            if (!convId) {
+                setConvId(res.conversationId);
             }
-
-            const res = await aiCoach(prompt, {
-                conversationId: convId ?? undefined,
-                mode: astroOn ? 'astroCoach' : 'coach',
-                astroHint
+            // temp durch echte User-Message ersetzen (id + timestamps vom Server)
+            replaceTempWithServerMessage(tempId, {
+                id: res.userMessageId,
+                conversationId: convId ?? res.conversationId,
+                role: 'user',
+                content: prompt,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
             });
-
-            if (!convId) setConvId(res.conversationId);
-            setMsgs(prev => [...prev, { id: res.assistantMessageId, role: 'assistant', content: res.reply }]);
+            // Assistant-Message lokal speichern via Sync (oder direkt hinzufügen):
+            await runSync(); // holt neue Server-Messages (inkl. Assistant)
+            // alternativ: setMsgs(prev => [...prev, { id: res.assistantMessageId, role:'assistant', content: res.reply }]);
+            // Danach Liste aus lokaler DB neu laden:
+            if (convId ?? res.conversationId) await loadInitialLocal(convId ?? res.conversationId);
         } catch (e: any) {
             setMsgs(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', content: `Fehler: ${e.message ?? 'Unbekannt'}` }]);
         } finally {
@@ -110,15 +127,13 @@ export default function ChatScreen({ route, navigation }: Props) {
         }
     }
 
+    function onEndReachedTop(y: number) { if (y < 50) loadMoreLocal(); }
+
     async function onRefresh() {
         if (!convId) return;
         setRefreshing(true);
         try { await loadInitial(convId); }
         finally { setRefreshing(false); }
-    }
-
-    function onEndReachedTop(offsetY: number) {
-        if (offsetY < 50) loadMore();
     }
 
     if (loading) {

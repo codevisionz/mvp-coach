@@ -1,8 +1,9 @@
 import { db } from './db';
 import { api } from './api';
+import { upsertConversationFromServer, upsertMessageFromServer } from './repo/chatLocal';
 
 function getKV(k: string) {
-  const row = db.getFirstSync<{v:string}>(`SELECT v FROM kv WHERE k=?`, [k]);
+  const row = db.getFirstSync<{ v: string }>(`SELECT v FROM kv WHERE k=?`, [k]);
   return row?.v ?? null;
 }
 function setKV(k: string, v: string) {
@@ -35,7 +36,7 @@ export async function pullChanges() {
 
   let last = since;
   db.withTransactionSync(() => {
-    // Checkins
+    // Checkins ...
     for (const r of (data.checkins as any[] ?? [])) {
       const delMs = r.deletedAt ? Date.parse(r.deletedAt) : null;
       const updMs = Date.parse(r.updatedAt);
@@ -45,12 +46,12 @@ export async function pullChanges() {
          ON CONFLICT(id) DO UPDATE SET
           date=excluded.date, mood=excluded.mood, note=excluded.note,
           updated_at=excluded.updated_at, deleted_at=excluded.deleted_at`,
-        [r.id, r.date.slice(0,10), r.mood, r.note ?? null, updMs, delMs]
+        [r.id, r.date.slice(0, 10), r.mood, r.note ?? null, updMs, delMs]
       );
       if (r.updatedAt > last) last = r.updatedAt;
     }
 
-    // Journals
+    // Journals ...
     for (const r of (data.journals as any[] ?? [])) {
       const delMs = r.deletedAt ? Date.parse(r.deletedAt) : null;
       const updMs = Date.parse(r.updatedAt);
@@ -60,21 +61,27 @@ export async function pullChanges() {
          ON CONFLICT(id) DO UPDATE SET
            text=excluded.text, ai_summary=excluded.ai_summary, tags=excluded.tags,
            updated_at=excluded.updated_at, deleted_at=excluded.deleted_at`,
-        [
-          r.id,
-          r.text,
-          r.aiSummary ?? null,
-          r.tags ? JSON.stringify(r.tags) : null,
-          updMs,
-          delMs
-        ]
+        [r.id, r.text, r.aiSummary ?? null, r.tags ? JSON.stringify(r.tags) : null, updMs, delMs]
       );
+      if (r.updatedAt > last) last = r.updatedAt;
+    }
+
+    // 🔹 Conversations
+    for (const r of (data.conversations as any[] ?? [])) {
+      upsertConversationFromServer(r);
+      if (r.updatedAt > last) last = r.updatedAt;
+    }
+
+    // 🔹 Messages
+    for (const r of (data.messages as any[] ?? [])) {
+      upsertMessageFromServer(r);
       if (r.updatedAt > last) last = r.updatedAt;
     }
 
     setKV('last_sync', last);
   });
 }
+
 export async function runSync() {
   await pushOutbox();
   await pullChanges();

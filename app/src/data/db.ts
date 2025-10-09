@@ -17,14 +17,31 @@ export function migrate() {
       id TEXT PRIMARY KEY,
       text TEXT NOT NULL,
       ai_summary TEXT,
-      tags TEXT,            -- JSON-String
+      tags TEXT,
       updated_at INTEGER,
       deleted_at INTEGER
     );`);
+    db.execSync(`CREATE TABLE IF NOT EXISTS conversations (
+      id TEXT PRIMARY KEY,
+      mode TEXT NOT NULL,          -- 'coach' | 'astroCoach'
+      updated_at INTEGER,
+      deleted_at INTEGER
+    );`);
+    db.execSync(`CREATE TABLE IF NOT EXISTS messages (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL,
+      role TEXT NOT NULL,          -- 'user' | 'assistant'
+      content TEXT NOT NULL,
+      created_at INTEGER,          -- ms epoch
+      updated_at INTEGER,
+      deleted_at INTEGER
+    );`);
+    db.execSync(`CREATE INDEX IF NOT EXISTS idx_messages_conv_created
+      ON messages (conversation_id, created_at DESC);`);
     db.execSync(`CREATE TABLE IF NOT EXISTS outbox (
       id TEXT PRIMARY KEY,
       table_name TEXT NOT NULL,
-      op TEXT NOT NULL,         -- 'upsert' | 'delete'
+      op TEXT NOT NULL,
       payload TEXT NOT NULL,
       created_at INTEGER
     );`);
