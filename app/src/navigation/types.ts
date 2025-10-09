@@ -9,7 +9,7 @@ export type TabsParamList = {
   Home: undefined;
   Journal: undefined;
   Chat: undefined;  
-  Settings: undefined;
+  Profile: undefined;
 };
 
 export type AuthStackParamList = {

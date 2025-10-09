@@ -5,7 +5,6 @@ import HomeScreen from '../screens/HomeScreen';
 import JournalScreen from '../screens/JournalScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import { Ionicons } from '@expo/vector-icons';
-import ChatScreen from '../screens/ChatScreen';
 import ChatStack from './ChatStack';
 
 const Tab = createBottomTabNavigator<TabsParamList>();
@@ -20,7 +19,7 @@ export default function Tabs() {
             Home: focused ? 'home' : 'home-outline',
             Journal: focused ? 'book' : 'book-outline',
             Chat: focused ? 'chatbubbles' : 'chatbubbles-outline',
-            Settings: focused ? 'settings' : 'settings-outline',
+            Profile: focused ? 'person-circle' : 'person-circle-outline',
           };
           
           const icon = map[route.name] ?? 'ellipse';
@@ -31,7 +30,7 @@ export default function Tabs() {
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
       <Tab.Screen name="Journal" component={JournalScreen} options={{ title: 'Journal' }} />
       <Tab.Screen name="Chat" component={ChatStack} options={{ title: 'Chat' }} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: 'Einstellungen' }} />
+      <Tab.Screen name="Profile" component={SettingsScreen} options={{ title: 'Profil' }} />
     </Tab.Navigator>
   );
 }
